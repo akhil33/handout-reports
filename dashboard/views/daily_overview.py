@@ -169,11 +169,23 @@ def render(df, expenses):
     with right:
         st.markdown("### Comparisons")
         for c in comparisons:
-            st.metric(f"{c['window']}-Day Average", _fmt(c["avg_sales"]), f"{c['pct_change']:+.1%}")
+            pct = c["pct_change"]
+            delta_txt = f"{pct:+.1%} vs today"
+            st.markdown(
+                _kpi_card("📉" if pct < 0 else "📈", f"{c['window']}-Day Average",
+                          _fmt(c["avg_sales"]), delta_txt, "#60a5fa", "96,165,250"),
+                unsafe_allow_html=True,
+            )
+            st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
         lw = same_day_last_week(df, selected_date)
         if lw:
-            st.metric(f"Last {lw['last_week_date'].strftime('%A')}", _fmt(lw["last_week_sales"]),
-                       f"{lw['pct_change']:+.1%}")
+            pct = lw["pct_change"]
+            delta_txt = f"{pct:+.1%} vs today"
+            st.markdown(
+                _kpi_card("📅", f"Last {lw['last_week_date'].strftime('%A')}",
+                          _fmt(lw["last_week_sales"]), delta_txt, "#a78bfa", "167,139,250"),
+                unsafe_allow_html=True,
+            )
 
     st.divider()
 
@@ -183,10 +195,14 @@ def render(df, expenses):
         st.markdown("### Month-to-Date")
         st.caption(f"{mtd['trading_days']} of {mtd['days_in_month']} days  •  {mtd['days_remaining']} remaining")
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("MTD Sales", _fmt(mtd["total_sales"]))
-        m2.metric("MTD Profit", _fmt(mtd["total_profit"]))
-        m3.metric("Daily Average", _fmt(mtd["daily_avg"]))
-        m4.metric("Projected", _fmt(mtd["projected_monthly"]))
+        m1.markdown(_kpi_card("📆", "MTD Sales", _fmt(mtd["total_sales"]),
+                              None, "#60a5fa", "96,165,250"), unsafe_allow_html=True)
+        m2.markdown(_kpi_card("💵", "MTD Profit", _fmt(mtd["total_profit"]),
+                              None, "#34d399", "52,211,153"), unsafe_allow_html=True)
+        m3.markdown(_kpi_card("📊", "Daily Average", _fmt(mtd["daily_avg"]),
+                              None, "#fbbf24", "251,191,36"), unsafe_allow_html=True)
+        m4.markdown(_kpi_card("🎯", "Projected", _fmt(mtd["projected_monthly"]),
+                              None, "#c084fc", "192,132,252"), unsafe_allow_html=True)
         st.progress(mtd["trading_days"] / mtd["days_in_month"])
 
     st.divider()
@@ -194,10 +210,16 @@ def render(df, expenses):
     # Expense context
     exp = expense_summary(expenses)
     st.markdown("### Fixed Cost Check")
-    e1, e2, e3 = st.columns(3)
-    e1.metric("Monthly Fixed", _fmt(exp["total_monthly"]))
-    e2.metric("Daily Burn", _fmt(exp["daily_burn"]))
     net_after = today["total_profit"] - exp["daily_burn"]
-    e3.metric("Net After Fixed", _fmt(abs(net_after)),
-              "Profit" if net_after >= 0 else "Loss",
-              delta_color="normal" if net_after >= 0 else "inverse")
+    is_profit = net_after >= 0
+    net_delta = "Profit" if is_profit else "Loss"
+    net_accent = "#34d399" if is_profit else "#f87171"
+    net_glow = "52,211,153" if is_profit else "248,113,113"
+
+    e1, e2, e3 = st.columns(3)
+    e1.markdown(_kpi_card("🏢", "Monthly Fixed", _fmt(exp["total_monthly"]),
+                          None, "#94a3b8", "148,163,184"), unsafe_allow_html=True)
+    e2.markdown(_kpi_card("🔥", "Daily Burn", _fmt(exp["daily_burn"]),
+                          None, "#fb923c", "251,146,60"), unsafe_allow_html=True)
+    e3.markdown(_kpi_card("💎", "Net After Fixed", _fmt(abs(net_after)),
+                          net_delta, net_accent, net_glow), unsafe_allow_html=True)
