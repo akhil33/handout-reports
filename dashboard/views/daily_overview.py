@@ -22,7 +22,7 @@ def _fmt(val):
 
 
 def _kpi_card(icon, label, value, delta=None, accent="#6366f1", glow="99,102,241"):
-    """Glassmorphism KPI card with glow effect."""
+    """Glassmorphism KPI card with glow effect. Delta shown inline next to label."""
     delta_html = ""
     if delta:
         is_positive = not delta.startswith("-")
@@ -30,9 +30,9 @@ def _kpi_card(icon, label, value, delta=None, accent="#6366f1", glow="99,102,241
         arrow = "▲" if is_positive else "▼"
         bg = "rgba(52,211,153,0.12)" if is_positive else "rgba(248,113,113,0.12)"
         delta_html = (
-            f'<div style="display:inline-block;margin-top:8px;padding:3px 10px;'
-            f'border-radius:20px;font-size:0.72rem;font-weight:600;'
-            f'background:{bg};color:{d_color};">{arrow} {delta}</div>'
+            f'<span style="display:inline-block;margin-left:8px;padding:2px 8px;'
+            f'border-radius:12px;font-size:0.6rem;font-weight:600;vertical-align:middle;'
+            f'background:{bg};color:{d_color};letter-spacing:0;">{arrow} {delta}</span>'
         )
 
     return f"""
@@ -41,7 +41,7 @@ def _kpi_card(icon, label, value, delta=None, accent="#6366f1", glow="99,102,241
         backdrop-filter: blur(12px);
         border: 1px solid rgba(255,255,255,0.08);
         border-radius: 16px;
-        padding: 22px 20px;
+        padding: 18px 20px;
         position: relative;
         overflow: hidden;
         box-shadow: 0 4px 24px rgba({glow},0.08), 0 1px 3px rgba(0,0,0,0.3);
@@ -51,10 +51,9 @@ def _kpi_card(icon, label, value, delta=None, accent="#6366f1", glow="99,102,241
         <div style="position:absolute;top:-30px;right:-20px;width:80px;height:80px;
             border-radius:50%;background:radial-gradient(circle, rgba({glow},0.08), transparent);"></div>
         <div style="font-size:0.68rem;color:#64748b;text-transform:uppercase;
-            letter-spacing:0.1em;font-weight:700;">{icon} &nbsp;{label}</div>
-        <div style="font-size:2rem;font-weight:800;color:#f1f5f9;margin-top:8px;
+            letter-spacing:0.1em;font-weight:700;">{icon} &nbsp;{label}{delta_html}</div>
+        <div style="font-size:2rem;font-weight:800;color:#f1f5f9;margin-top:6px;
             font-family:Menlo,monospace;">{value}</div>
-        {delta_html}
     </div>"""
 
 

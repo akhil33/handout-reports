@@ -154,11 +154,10 @@ def render(df, expenses):
                 fill="tozeroy", fillcolor=f"rgba({glow},0.08)",
                 mode="lines",
             ))
-        fig_s.update_layout(
-            **CHART_LAYOUT, height=370, yaxis_title="",
-            yaxis=dict(gridcolor="rgba(255,255,255,0.04)", color="#64748b",
-                       tickfont=dict(size=10), ticksuffix="%"),
-            legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center",
-                        font=dict(size=10, color="#94a3b8")),
-        )
+        layout = {**CHART_LAYOUT}
+        layout["yaxis"] = dict(gridcolor="rgba(255,255,255,0.04)", color="#64748b",
+                               tickfont=dict(size=10), ticksuffix="%")
+        layout["legend"] = dict(orientation="h", y=-0.15, x=0.5, xanchor="center",
+                                font=dict(size=10, color="#94a3b8"))
+        fig_s.update_layout(**layout, height=370)
         st.plotly_chart(fig_s, use_container_width=True)
