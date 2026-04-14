@@ -61,39 +61,42 @@ def render(df, expenses):
         avg_daily=("Sales", "mean"),
     ).sort_values("total_sales", ascending=False).reset_index()
 
-    # Glowing scorecards
-    st.markdown("### Section Scorecards")
-    cols = st.columns(min(len(totals), 4))
+    # Compact section table with colored indicators
+    total_sales = totals["total_sales"].sum()
+
+    # Header
+    st.markdown("""
+    <div style="display:grid;grid-template-columns:2fr 1.2fr 1.2fr 1fr 3fr;
+        gap:0;padding:8px 14px;font-size:0.65rem;color:#64748b;
+        text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">
+        <div>Section</div><div style="text-align:right;">Total</div>
+        <div style="text-align:right;">Avg/Day</div><div style="text-align:right;">Share</div>
+        <div></div>
+    </div>""", unsafe_allow_html=True)
+
     for i, (_, row) in enumerate(totals.iterrows()):
-        with cols[i % len(cols)]:
-            color = SECTION_COLORS[i % len(SECTION_COLORS)]
-            glow = SECTION_GLOWS[i % len(SECTION_GLOWS)]
-            share = row["total_sales"] / totals["total_sales"].sum() * 100
-            st.markdown(f"""
-            <div style="
-                background:linear-gradient(145deg, rgba(30,41,59,0.9), rgba(15,23,42,0.95));
-                border:1px solid rgba(255,255,255,0.06);
-                border-radius:16px;padding:20px;
-                border-left:4px solid {color};
-                box-shadow:0 4px 20px rgba({glow},0.1), 0 1px 3px rgba(0,0,0,0.3);
-                margin-bottom:8px;position:relative;overflow:hidden;
-            ">
-                <div style="position:absolute;top:-20px;right:-10px;width:60px;height:60px;
-                    border-radius:50%;background:radial-gradient(circle,rgba({glow},0.1),transparent);"></div>
-                <div style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">{row['Section']}</div>
-                <div style="font-size:1.5rem;font-weight:800;color:{color};margin-top:6px;
-                    font-family:Menlo,monospace;">
-                    {CURRENCY_SYMBOL}{row['total_sales']/100000:.2f}L
+        color = SECTION_COLORS[i % len(SECTION_COLORS)]
+        share = row["total_sales"] / total_sales * 100
+        bg = "rgba(255,255,255,0.02)" if i % 2 == 0 else "transparent"
+        st.markdown(f"""
+        <div style="display:grid;grid-template-columns:2fr 1.2fr 1.2fr 1fr 3fr;
+            gap:0;padding:10px 14px;background:{bg};align-items:center;
+            border-bottom:1px solid rgba(255,255,255,0.04);
+            font-family:Menlo,monospace;font-size:0.82rem;color:#e2e8f0;">
+            <div><span style="color:{color};font-size:1.1rem;">●</span> &nbsp;
+                <span style="font-weight:600;">{row['Section']}</span></div>
+            <div style="text-align:right;font-weight:700;color:{color};">
+                {CURRENCY_SYMBOL}{row['total_sales']/100000:.2f}L</div>
+            <div style="text-align:right;color:#94a3b8;">
+                {CURRENCY_SYMBOL}{row['avg_daily']/1000:.1f}K</div>
+            <div style="text-align:right;color:#94a3b8;">{share:.0f}%</div>
+            <div style="padding:0 8px;">
+                <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:3px;">
+                    <div style="height:6px;width:{min(share*2,100):.0f}%;background:{color};
+                        border-radius:3px;"></div>
                 </div>
-                <div style="font-size:0.72rem;color:#64748b;margin-top:6px;line-height:1.5;">
-                    {CURRENCY_SYMBOL}{row['avg_daily']/1000:.1f}K/day &nbsp;•&nbsp;
-                    {share:.0f}% share
-                </div>
-                <div style="margin-top:8px;height:4px;background:rgba(255,255,255,0.06);border-radius:4px;">
-                    <div style="height:4px;width:{min(share*2,100):.0f}%;background:{color};
-                        border-radius:4px;"></div>
-                </div>
-            </div>""", unsafe_allow_html=True)
+            </div>
+        </div>""", unsafe_allow_html=True)
 
     st.markdown('<div style="height:16px;"></div>', unsafe_allow_html=True)
 
@@ -139,7 +142,23 @@ def render(df, expenses):
         date_totals = daily_totals.groupby("Date")["Sales"].sum().reset_index().rename(columns={"Sales": "DayTotal"})
         daily_totals = daily_totals.merge(date_totals, on="Date")
         daily_totals["Share"] = daily_totals["Sales"] / daily_totals["DayTotal"] * 100
-        fig_s = px.area(daily_totals, x="Date", y="Share", color="Section",
-                         color_discrete_sequence=SECTION_COLORS, groupnorm="percent")
-        fig_s.update_layout(**CHART_LAYOUT, height=370, yaxis_title="")
+
+        fig_s = go.Figure()
+        for i, section in enumerate(totals["Section"]):
+            s = daily_totals[daily_totals["Section"] == section].sort_values("Date")
+            color = SECTION_COLORS[i % len(SECTION_COLORS)]
+            glow = SECTION_GLOWS[i % len(SECTION_GLOWS)]
+            fig_s.add_trace(go.Scatter(
+                x=s["Date"], y=s["Share"], name=section,
+                line=dict(color=color, width=1, shape="spline"),
+                fill="tozeroy", fillcolor=f"rgba({glow},0.08)",
+                mode="lines",
+            ))
+        fig_s.update_layout(
+            **CHART_LAYOUT, height=370, yaxis_title="",
+            yaxis=dict(gridcolor="rgba(255,255,255,0.04)", color="#64748b",
+                       tickfont=dict(size=10), ticksuffix="%"),
+            legend=dict(orientation="h", y=-0.15, x=0.5, xanchor="center",
+                        font=dict(size=10, color="#94a3b8")),
+        )
         st.plotly_chart(fig_s, use_container_width=True)

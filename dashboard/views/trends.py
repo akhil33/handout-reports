@@ -130,7 +130,7 @@ def render(df, expenses):
 
     st.divider()
 
-    # Monthly summary
+    # Monthly summary — compact table
     st.markdown("### Monthly Summary")
     trading["Month"] = trading["Date"].dt.to_period("M").astype(str)
     monthly = trading.groupby("Month").agg(
@@ -139,10 +139,29 @@ def render(df, expenses):
         avg_margin=("Total Margin %", "mean"),
     ).reset_index()
 
-    for _, row in monthly.iterrows():
-        cols = st.columns([2, 2, 2, 1, 1])
-        cols[0].metric(row["Month"], f"{CURRENCY_SYMBOL}{row['total_sales']/100000:.1f}L")
-        cols[1].metric("Profit", f"{CURRENCY_SYMBOL}{row['total_profit']/100000:.1f}L")
-        cols[2].metric("Daily Avg", f"{CURRENCY_SYMBOL}{row['avg_daily']/1000:.0f}K")
-        cols[3].metric("Days", int(row["trading_days"]))
-        cols[4].metric("Margin", f"{row['avg_margin']:.1%}")
+    st.markdown("""
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 0.6fr 0.7fr;
+        gap:0;padding:8px 14px;font-size:0.65rem;color:#64748b;
+        text-transform:uppercase;letter-spacing:0.08em;font-weight:700;
+        background:rgba(255,255,255,0.03);border-radius:8px 8px 0 0;">
+        <div>Month</div><div style="text-align:right;">Sales</div>
+        <div style="text-align:right;">Profit</div><div style="text-align:right;">Daily Avg</div>
+        <div style="text-align:right;">Days</div><div style="text-align:right;">Margin</div>
+    </div>""", unsafe_allow_html=True)
+
+    for i, (_, row) in enumerate(monthly.iterrows()):
+        bg = "rgba(255,255,255,0.02)" if i % 2 == 0 else "transparent"
+        m_color = "#34d399" if row["avg_margin"] >= 0.38 else "#fbbf24" if row["avg_margin"] >= 0.35 else "#f87171"
+        radius = "0 0 8px 8px" if i == len(monthly) - 1 else "0"
+        st.markdown(f"""
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 0.6fr 0.7fr;
+            gap:0;padding:10px 14px;background:{bg};border-radius:{radius};
+            border-bottom:1px solid rgba(255,255,255,0.04);
+            font-family:Menlo,monospace;font-size:0.82rem;color:#e2e8f0;align-items:center;">
+            <div style="font-weight:700;">{row["Month"]}</div>
+            <div style="text-align:right;">{CURRENCY_SYMBOL}{row['total_sales']/100000:.1f}L</div>
+            <div style="text-align:right;color:#34d399;">{CURRENCY_SYMBOL}{row['total_profit']/100000:.1f}L</div>
+            <div style="text-align:right;color:#94a3b8;">{CURRENCY_SYMBOL}{row['avg_daily']/1000:.0f}K</div>
+            <div style="text-align:right;color:#94a3b8;">{int(row['trading_days'])}</div>
+            <div style="text-align:right;color:{m_color};font-weight:600;">{row['avg_margin']:.1%}</div>
+        </div>""", unsafe_allow_html=True)

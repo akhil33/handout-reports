@@ -28,11 +28,12 @@ def _kpi_card(icon, label, value, delta=None, accent="#6366f1", glow="99,102,241
         is_positive = not delta.startswith("-")
         d_color = "#34d399" if is_positive else "#f87171"
         arrow = "▲" if is_positive else "▼"
-        delta_html = f'''
-        <div style="display:inline-block;margin-top:8px;padding:3px 10px;
-            border-radius:20px;font-size:0.72rem;font-weight:600;
-            background:{'rgba(52,211,153,0.12)' if is_positive else 'rgba(248,113,113,0.12)'};
-            color:{d_color};">{arrow} {delta}</div>'''
+        bg = "rgba(52,211,153,0.12)" if is_positive else "rgba(248,113,113,0.12)"
+        delta_html = (
+            f'<div style="display:inline-block;margin-top:8px;padding:3px 10px;'
+            f'border-radius:20px;font-size:0.72rem;font-weight:600;'
+            f'background:{bg};color:{d_color};">{arrow} {delta}</div>'
+        )
 
     return f"""
     <div style="
