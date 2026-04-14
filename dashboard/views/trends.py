@@ -40,13 +40,13 @@ def render(df, expenses):
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=trading["Date"], y=trading["Total Net"], name="Sales",
-        line=dict(color="#818cf8", width=3, shape="spline"),
+        line=dict(color="#818cf8", width=1, shape="spline"),
         fill="tozeroy", fillcolor="rgba(129,140,248,0.12)",
         mode="lines",
     ))
     fig.add_trace(go.Scatter(
         x=trading["Date"], y=trading["Total Profit"], name="Profit",
-        line=dict(color="#34d399", width=3, shape="spline"),
+        line=dict(color="#34d399", width=1, shape="spline"),
         fill="tozeroy", fillcolor="rgba(52,211,153,0.10)",
         mode="lines",
     ))
@@ -54,7 +54,7 @@ def render(df, expenses):
         trading["Sales_7d"] = trading["Total Net"].rolling(7).mean()
         fig.add_trace(go.Scatter(
             x=trading["Date"], y=trading["Sales_7d"], name="7-Day Avg",
-            line=dict(color="#fbbf24", width=2.5, dash="dot", shape="spline"),
+            line=dict(color="#fbbf24", width=1, dash="dot", shape="spline"),
             mode="lines",
         ))
     fig.update_layout(**CHART_LAYOUT, height=400)
@@ -71,7 +71,7 @@ def render(df, expenses):
         colors = ["#34d399" if m >= 0.35 else "#f87171" for m in trading["Total Margin %"]]
         fig_m.add_trace(go.Scatter(
             x=trading["Date"], y=trading["Total Margin %"] * 100, name="Margin %",
-            line=dict(color="#f472b6", width=3, shape="spline"),
+            line=dict(color="#f472b6", width=1, shape="spline"),
             fill="tozeroy", fillcolor="rgba(244,114,182,0.08)",
             mode="lines+markers",
             marker=dict(size=5, color=colors, line=dict(width=0)),

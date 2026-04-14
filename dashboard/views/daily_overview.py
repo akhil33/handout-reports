@@ -9,7 +9,7 @@ from hangout.analytics import (
 )
 from hangout.config import CURRENCY_SYMBOL
 
-SECTION_COLORS = ["#6366f1", "#06b6d4", "#f59e0b", "#ec4899", "#10b981", "#f97316"]
+SECTION_COLORS = ["#4ade80", "#60a5fa", "#fb923c", "#f472b6", "#facc15", "#22d3ee"]
 CHART_FONT = dict(family="Menlo, monospace", color="#94a3b8", size=11)
 
 

@@ -5,9 +5,10 @@ import plotly.graph_objects as go
 import pandas as pd
 from hangout.config import SECTIONS, CURRENCY_SYMBOL
 
-SECTION_COLORS = ["#6366f1", "#06b6d4", "#f59e0b", "#ec4899", "#10b981", "#f97316"]
+# High-contrast colors that are clearly distinguishable on dark backgrounds
+SECTION_COLORS = ["#4ade80", "#60a5fa", "#fb923c", "#f472b6", "#facc15", "#22d3ee"]
 SECTION_GLOWS = [
-    "99,102,241", "6,182,212", "245,158,11", "236,72,153", "16,185,129", "249,115,22"
+    "74,222,128", "96,165,250", "251,146,60", "244,114,182", "250,204,21", "34,211,238"
 ]
 CHART_FONT = dict(family="Menlo, monospace", color="#94a3b8", size=11)
 
@@ -121,12 +122,12 @@ def render(df, expenses):
         for i, section in enumerate(totals["Section"]):
             s = sec_df[sec_df["Section"] == section].sort_values("Date")
             color = SECTION_COLORS[i % len(SECTION_COLORS)]
+            glow = SECTION_GLOWS[i % len(SECTION_GLOWS)]
             fig_t.add_trace(go.Scatter(
                 x=s["Date"], y=s["Sales"], name=section,
-                line=dict(color=color, width=2.5, shape="spline"),
-                fill="tonexty" if i > 0 else "tozeroy",
-                fillcolor=color.replace(")", ",0.08)").replace("rgb", "rgba") if "rgb" in color
-                    else f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},0.08)",
+                line=dict(color=color, width=1, shape="spline"),
+                fill="tozeroy",
+                fillcolor=f"rgba({glow},0.06)",
                 mode="lines",
             ))
         fig_t.update_layout(**CHART_LAYOUT, height=370)

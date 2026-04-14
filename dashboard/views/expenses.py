@@ -124,22 +124,45 @@ def render(df, expenses):
         ))
         fig_pnl.add_trace(go.Scatter(
             x=monthly["Month"], y=monthly["revenue"], name="Revenue",
-            line=dict(color="#818cf8", width=3, shape="spline"),
+            line=dict(color="#818cf8", width=1, shape="spline"),
             mode="lines+markers",
             marker=dict(size=8, color="#818cf8", line=dict(color="#0f172a", width=2)),
         ))
         fig_pnl.update_layout(**CHART_LAYOUT, barmode="stack", height=420, bargap=0.25)
         st.plotly_chart(fig_pnl, use_container_width=True)
 
-        # Monthly table
-        for _, row in monthly.iterrows():
-            cols = st.columns([2, 2, 2, 2, 2, 1])
-            cols[0].metric(row["Month"], _fmt(row["revenue"]))
-            cols[1].metric("COGS", _fmt(row["cogs"]))
-            cols[2].metric("Fixed", _fmt(row["fixed"]))
-            cols[3].metric("Net Profit", _fmt(row["net_profit"]))
-            cols[4].metric("Net Margin", f"{row['net_margin']:.1%}")
-            cols[5].metric("Days", int(row["days"]))
+        # Monthly table — lightweight styled rows
+        st.markdown("""
+        <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr 0.5fr;
+            gap:0;padding:10px 16px;background:rgba(255,255,255,0.04);border-radius:10px 10px 0 0;
+            font-size:0.68rem;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">
+            <div>Month</div><div style="text-align:right;">Revenue</div>
+            <div style="text-align:right;">COGS</div><div style="text-align:right;">Fixed</div>
+            <div style="text-align:right;">Net Profit</div><div style="text-align:right;">Days</div>
+        </div>""", unsafe_allow_html=True)
+
+        for i, row in monthly.iterrows():
+            margin_color = "#34d399" if row["net_margin"] >= 0 else "#f87171"
+            net_color = "#34d399" if row["net_profit"] >= 0 else "#f87171"
+            bg = "rgba(255,255,255,0.02)" if i % 2 == 0 else "transparent"
+            radius = "0 0 10px 10px" if i == len(monthly) - 1 else "0"
+            st.markdown(f"""
+            <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr 0.5fr;
+                gap:0;padding:12px 16px;background:{bg};border-radius:{radius};
+                border-bottom:1px solid rgba(255,255,255,0.04);
+                font-family:Menlo,monospace;font-size:0.82rem;color:#e2e8f0;align-items:center;">
+                <div style="font-weight:700;">{row["Month"]}</div>
+                <div style="text-align:right;">{_fmt(row["revenue"])}</div>
+                <div style="text-align:right;color:#a78bfa;">{_fmt(row["cogs"])}</div>
+                <div style="text-align:right;color:#fbbf24;">{_fmt(row["fixed"])}</div>
+                <div style="text-align:right;color:{net_color};font-weight:700;">
+                    {_fmt(row["net_profit"])}
+                    <span style="font-size:0.65rem;color:{margin_color};margin-left:6px;">
+                        {row["net_margin"]:.1%}
+                    </span>
+                </div>
+                <div style="text-align:right;color:#94a3b8;">{int(row["days"])}</div>
+            </div>""", unsafe_allow_html=True)
 
         # Daily break-even
         st.divider()
