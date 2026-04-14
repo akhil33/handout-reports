@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """The Hangout — Business Dashboard"""
 import sys
+import threading
 from pathlib import Path
 from datetime import date, timedelta
 
@@ -19,39 +20,60 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Inject custom CSS
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Auto-sync on cold start (Streamlit Cloud)
+# Smart cold-start: fast first paint + background backfill
 # ---------------------------------------------------------------------------
 from hangout.db import DB_PATH, init_db, get_conn
+from hangout.sync import sync_date_range
 
 init_db()
 
 
-def _db_has_data():
+def _trading_days_count():
     try:
         with get_conn() as conn:
-            count = conn.execute("SELECT COUNT(*) FROM daily_sales WHERE total_net > 0").fetchone()[0]
-        return count > 0
+            return conn.execute("SELECT COUNT(*) FROM daily_sales WHERE total_net > 0").fetchone()[0]
     except Exception:
-        return False
+        return 0
 
 
-if not _db_has_data():
-    with st.spinner("Syncing last 90 days from Rista POS..."):
-        from hangout.sync import sync_date_range
+def _backfill_background(start_str, end_str):
+    """Run a backfill in a background thread (non-blocking)."""
+    sync_date_range(start_str, end_str)
+
+
+trading_count = _trading_days_count()
+
+if trading_count == 0:
+    # No data at all — quick sync last 7 days so user sees something fast
+    with st.spinner("Loading recent data..."):
         end = date.today()
-        start = end - timedelta(days=89)
-        results = sync_date_range(start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-        try:
-            from hangout.ingest import _ingest_expenses
-            from hangout.config import EXCEL_PATH
-            if EXCEL_PATH.exists():
-                _ingest_expenses(EXCEL_PATH)
-        except Exception:
-            pass
+        start = end - timedelta(days=6)
+        sync_date_range(start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+
+    # Kick off full history backfill in background
+    end = date.today() - timedelta(days=7)
+    start_bg = date(2024, 8, 1)  # earliest data available
+    t = threading.Thread(
+        target=_backfill_background,
+        args=(start_bg.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")),
+        daemon=True,
+    )
+    t.start()
+    st.toast("Loading historical data in the background...", icon="⏳")
+
+elif trading_count < 30:
+    # Has some data but not much — backfill more in background
+    end = date.today() - timedelta(days=7)
+    start_bg = date(2024, 8, 1)
+    t = threading.Thread(
+        target=_backfill_background,
+        args=(start_bg.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")),
+        daemon=True,
+    )
+    t.start()
 
 # ---------------------------------------------------------------------------
 # Load data
@@ -70,11 +92,10 @@ df, expenses = get_data()
 # Sidebar
 # ---------------------------------------------------------------------------
 
-# Brand
 st.sidebar.markdown(SIDEBAR_BRAND, unsafe_allow_html=True)
 st.sidebar.markdown("")
 
-# Quick KPIs in sidebar
+# Quick KPIs
 if not df.empty:
     trading = df[df["Total Net"] > 0]
     if not trading.empty:
@@ -84,7 +105,6 @@ if not df.empty:
         profit = latest["Total Profit"]
         margin = latest["Total Margin %"]
 
-        # Delta vs previous day
         delta_str = None
         if len(trading) > 1:
             prev = trading.iloc[1]["Total Net"]
@@ -96,9 +116,7 @@ if not df.empty:
             sidebar_kpi_card(f"Sales — {latest_date}", f"₹{net/1000:.1f}K", delta_str, "#3b82f6"),
             unsafe_allow_html=True,
         )
-        st.sidebar.markdown(
-            '<div style="height:8px;"></div>', unsafe_allow_html=True
-        )
+        st.sidebar.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
 
         profit_color = "#22c55e" if margin >= 0.38 else "#f59e0b"
         st.sidebar.markdown(
@@ -115,7 +133,6 @@ st.sidebar.markdown(
     unsafe_allow_html=True,
 )
 
-# Initialize session state for page
 if "page" not in st.session_state:
     st.session_state.page = "Daily Overview"
 
@@ -159,36 +176,23 @@ if col_b.button("⟳ Yesterday", use_container_width=True):
         st.sidebar.error(str(e)[:60])
 
 with st.sidebar.expander("⚙  More sync options"):
-    if st.button("Backfill 30 days", use_container_width=True):
-        from hangout.sync import sync_date_range
-        end = date.today()
-        start = end - timedelta(days=29)
-        with st.spinner("Syncing..."):
-            results = sync_date_range(start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-        ok = sum(1 for r in results if "error" not in r)
-        st.success(f"✓ {ok} days synced")
+    if st.button("Load full history (Aug 2024+)", use_container_width=True):
+        with st.spinner("Syncing all history..."):
+            results = sync_date_range("2024-08-01", date.today().strftime("%Y-%m-%d"))
+        ok = sum(1 for r in results if "error" not in r and r.get("net", 0) > 0)
+        st.success(f"✓ {ok} trading days synced")
         st.cache_data.clear()
         st.rerun()
 
-    if st.button("Backfill 90 days", use_container_width=True):
-        from hangout.sync import sync_date_range
-        end = date.today()
-        start = end - timedelta(days=89)
-        with st.spinner("Syncing..."):
-            results = sync_date_range(start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-        ok = sum(1 for r in results if "error" not in r)
-        st.success(f"✓ {ok} days synced")
-        st.cache_data.clear()
-        st.rerun()
-
-# Last sync info
+# Data info
 if not df.empty:
     trading = df[df["Total Net"] > 0]
     if not trading.empty:
-        last_date = trading.iloc[0]["Date"].strftime("%b %d, %Y")
+        first = trading.iloc[-1]["Date"].strftime("%b %Y")
+        last = trading.iloc[0]["Date"].strftime("%b %d, %Y")
         st.sidebar.markdown(
-            f'<div style="text-align:center;padding:12px 0 8px;font-size:0.7rem;color:#475569;">'
-            f'Latest data: {last_date}</div>',
+            f'<div style="text-align:center;padding:12px 0 8px;font-size:0.68rem;color:#475569;">'
+            f'{len(trading)} days &nbsp;•&nbsp; {first} — {last}</div>',
             unsafe_allow_html=True,
         )
 
