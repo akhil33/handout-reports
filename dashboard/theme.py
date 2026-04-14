@@ -5,10 +5,15 @@ CUSTOM_CSS = """
 /* ===== HIDE DEFAULT STREAMLIT CHROME ===== */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-header {visibility: hidden;}
 
-/* Hide default multipage nav */
+/* Hide default multipage nav but keep header for sidebar toggle */
 [data-testid="stSidebarNav"] {display: none !important;}
+
+/* Make the header transparent so toggle is accessible but header bar is invisible */
+header[data-testid="stHeader"] {
+    background: transparent !important;
+    backdrop-filter: none !important;
+}
 
 /* ===== SIDEBAR STYLING ===== */
 [data-testid="stSidebar"] {
