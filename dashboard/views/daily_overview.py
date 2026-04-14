@@ -26,12 +26,12 @@ def _kpi_card(icon, label, value, delta=None, color="#3b82f6"):
         arrow = "▲" if not delta.startswith("-") else "▼"
         delta_html = f'<div style="font-size:0.78rem;color:{d_color};margin-top:4px;">{arrow} {delta}</div>'
     return f"""
-    <div style="background:linear-gradient(135deg,#ffffff,#f8fafc);border:1px solid #e2e8f0;
+    <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.06);
         border-radius:14px;padding:20px;border-top:3px solid {color};
-        box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        box-shadow:0 2px 8px rgba(0,0,0,0.2);">
         <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;
             letter-spacing:0.08em;font-weight:600;">{icon} {label}</div>
-        <div style="font-size:1.8rem;font-weight:700;color:#1e293b;margin-top:6px;">{value}</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#f1f5f9;margin-top:6px;">{value}</div>
         {delta_html}
     </div>"""
 
@@ -90,7 +90,8 @@ def render(df, expenses):
             fig.update_traces(textinfo="label+percent", textposition="outside",
                               textfont_size=12, pull=[0.02]*len(active))
             fig.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=300,
-                              showlegend=False, paper_bgcolor="rgba(0,0,0,0)")
+                              showlegend=False, paper_bgcolor="rgba(0,0,0,0)",
+                              font=dict(family="Menlo, monospace", color="#cbd5e1"))
             st.plotly_chart(fig, use_container_width=True)
 
             for s in active:

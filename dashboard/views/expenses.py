@@ -9,9 +9,10 @@ from hangout.config import CURRENCY_SYMBOL, DEFAULT_DAYS_IN_MONTH
 CHART_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     margin=dict(t=10, b=40, l=0, r=0),
-    legend=dict(orientation="h", y=1.08, font=dict(size=11)),
-    xaxis=dict(showgrid=False), yaxis=dict(gridcolor="#f1f5f9", tickformat=","),
-    font=dict(family="Inter, system-ui, sans-serif"),
+    legend=dict(orientation="h", y=1.08, font=dict(size=11, color="#94a3b8")),
+    xaxis=dict(showgrid=False, color="#94a3b8"),
+    yaxis=dict(gridcolor="rgba(255,255,255,0.06)", tickformat=",", color="#94a3b8"),
+    font=dict(family="Menlo, monospace", color="#cbd5e1"),
 )
 
 

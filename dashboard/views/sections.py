@@ -9,9 +9,10 @@ SECTION_COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d
 CHART_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     margin=dict(t=10, b=40, l=0, r=0),
-    legend=dict(orientation="h", y=1.08, font=dict(size=11)),
-    xaxis=dict(showgrid=False), yaxis=dict(gridcolor="#f1f5f9", tickformat=","),
-    font=dict(family="Inter, system-ui, sans-serif"),
+    legend=dict(orientation="h", y=1.08, font=dict(size=11, color="#94a3b8")),
+    xaxis=dict(showgrid=False, color="#94a3b8"),
+    yaxis=dict(gridcolor="rgba(255,255,255,0.06)", tickformat=",", color="#94a3b8"),
+    font=dict(family="Menlo, monospace", color="#cbd5e1"),
 )
 
 
@@ -58,14 +59,14 @@ def render(df, expenses):
         with cols[i % len(cols)]:
             color = SECTION_COLORS[i % len(SECTION_COLORS)]
             st.markdown(f"""
-            <div style="background:linear-gradient(135deg,#ffffff,#f8fafc);border:1px solid #e2e8f0;
+            <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.06);
                 border-radius:14px;padding:18px;border-left:4px solid {color};
-                box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:8px;">
-                <div style="font-size:0.85rem;font-weight:700;color:#1e293b;">{row['Section']}</div>
+                box-shadow:0 2px 8px rgba(0,0,0,0.2);margin-bottom:8px;">
+                <div style="font-size:0.85rem;font-weight:700;color:#e2e8f0;">{row['Section']}</div>
                 <div style="font-size:1.4rem;font-weight:700;color:{color};margin-top:4px;">
                     {CURRENCY_SYMBOL}{row['total_sales']/100000:.2f}L
                 </div>
-                <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">
+                <div style="font-size:0.75rem;color:#94a3b8;margin-top:4px;">
                     Avg/day: {CURRENCY_SYMBOL}{row['avg_daily']/1000:.1f}K &nbsp;•&nbsp;
                     Profit: {CURRENCY_SYMBOL}{row['total_profit']/100000:.2f}L
                 </div>
