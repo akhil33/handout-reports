@@ -78,9 +78,29 @@ def render(df, expenses):
         st.info(f"No sales recorded on {selected_date.strftime('%B %d, %Y')}.")
         return
 
-    # Alerts
-    for level, msg in generate_alerts(df, selected_date, expenses):
-        (st.warning if level == "warning" else st.success)(msg, icon="⚠️" if level == "warning" else "🎉")
+    # Alerts — compact inline chips
+    alerts = generate_alerts(df, selected_date, expenses)
+    if alerts:
+        chips = []
+        for level, msg in alerts:
+            if level == "warning":
+                chips.append(
+                    f'<span style="display:inline-block;padding:4px 12px;margin:0 6px 6px 0;'
+                    f'border-radius:20px;font-size:0.72rem;font-weight:600;'
+                    f'background:rgba(251,191,36,0.1);color:#fbbf24;'
+                    f'border:1px solid rgba(251,191,36,0.2);">⚠ {msg}</span>'
+                )
+            else:
+                chips.append(
+                    f'<span style="display:inline-block;padding:4px 12px;margin:0 6px 6px 0;'
+                    f'border-radius:20px;font-size:0.72rem;font-weight:600;'
+                    f'background:rgba(52,211,153,0.1);color:#34d399;'
+                    f'border:1px solid rgba(52,211,153,0.2);">🎉 {msg}</span>'
+                )
+        st.markdown(
+            f'<div style="margin-bottom:12px;">{"".join(chips)}</div>',
+            unsafe_allow_html=True,
+        )
 
     # KPI cards with different accent colors and glows
     comparisons = compare_averages(df, selected_date)
