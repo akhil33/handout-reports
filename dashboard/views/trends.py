@@ -1,17 +1,23 @@
-"""Trends & Analytics — time series, rolling averages, day-of-week patterns."""
+"""Trends & Analytics — vibrant charts, gradient fills, rich colors."""
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 from hangout.config import CURRENCY_SYMBOL
 
+CHART_FONT = dict(family="Menlo, monospace", color="#94a3b8", size=11)
+
 CHART_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     margin=dict(t=10, b=40, l=0, r=0),
     hovermode="x unified",
+    hoverlabel=dict(bgcolor="#1e293b", bordercolor="rgba(255,255,255,0.1)",
+                    font=dict(color="#f1f5f9", family="Menlo, monospace")),
     legend=dict(orientation="h", y=1.08, font=dict(size=11, color="#94a3b8")),
-    xaxis=dict(gridcolor="rgba(255,255,255,0.06)", showgrid=False, color="#94a3b8"),
-    yaxis=dict(gridcolor="rgba(255,255,255,0.06)", tickformat=",", color="#94a3b8"),
-    font=dict(family="Menlo, monospace", color="#cbd5e1"),
+    xaxis=dict(gridcolor="rgba(255,255,255,0.04)", showgrid=False, color="#64748b",
+               tickfont=dict(size=10)),
+    yaxis=dict(gridcolor="rgba(255,255,255,0.04)", tickformat=",", color="#64748b",
+               tickfont=dict(size=10)),
+    font=CHART_FONT,
 )
 
 
@@ -23,57 +29,71 @@ def render(df, expenses):
         st.warning("No data available.")
         return
 
-    period = st.radio("Period", ["7 Days", "30 Days", "90 Days", "All Time"], horizontal=True, label_visibility="collapsed")
+    period = st.radio("Period", ["7 Days", "30 Days", "90 Days", "All Time"],
+                       horizontal=True, label_visibility="collapsed")
     n = {"7 Days": 7, "30 Days": 30, "90 Days": 90, "All Time": None}[period]
     if n:
         trading = trading.tail(n)
 
-    # Sales & Profit
+    # Sales & Profit — gradient area fills
     st.markdown("### Sales & Profit Trend")
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=trading["Date"], y=trading["Total Net"], name="Sales",
-        line=dict(color="#3b82f6", width=2.5),
-        fill="tozeroy", fillcolor="rgba(59,130,246,0.08)",
+        line=dict(color="#818cf8", width=3, shape="spline"),
+        fill="tozeroy", fillcolor="rgba(129,140,248,0.12)",
+        mode="lines",
     ))
     fig.add_trace(go.Scatter(
         x=trading["Date"], y=trading["Total Profit"], name="Profit",
-        line=dict(color="#22c55e", width=2.5),
-        fill="tozeroy", fillcolor="rgba(34,197,94,0.08)",
+        line=dict(color="#34d399", width=3, shape="spline"),
+        fill="tozeroy", fillcolor="rgba(52,211,153,0.10)",
+        mode="lines",
     ))
     if len(trading) >= 7:
         trading["Sales_7d"] = trading["Total Net"].rolling(7).mean()
         fig.add_trace(go.Scatter(
             x=trading["Date"], y=trading["Sales_7d"], name="7-Day Avg",
-            line=dict(color="#f59e0b", width=2, dash="dash"),
+            line=dict(color="#fbbf24", width=2.5, dash="dot", shape="spline"),
+            mode="lines",
         ))
-    fig.update_layout(**CHART_LAYOUT, height=380)
+    fig.update_layout(**CHART_LAYOUT, height=400)
     st.plotly_chart(fig, use_container_width=True)
 
-    # Margin + Cost split side by side
+    # Margin + Cost split
     left, right = st.columns(2, gap="large")
 
     with left:
         st.markdown("### Profit Margin")
         fig_m = go.Figure()
+
+        # Color-coded margin line — green above 35, red below
+        colors = ["#34d399" if m >= 0.35 else "#f87171" for m in trading["Total Margin %"]]
         fig_m.add_trace(go.Scatter(
             x=trading["Date"], y=trading["Total Margin %"] * 100, name="Margin %",
-            line=dict(color="#ef4444", width=2.5),
-            fill="tozeroy", fillcolor="rgba(239,68,68,0.06)",
+            line=dict(color="#f472b6", width=3, shape="spline"),
+            fill="tozeroy", fillcolor="rgba(244,114,182,0.08)",
+            mode="lines+markers",
+            marker=dict(size=5, color=colors, line=dict(width=0)),
         ))
-        fig_m.add_hline(y=35, line_dash="dash", line_color="#f59e0b",
-                         annotation_text="35% Target", annotation_position="top left")
-        fig_m.update_layout(**CHART_LAYOUT, height=280, yaxis_title="Margin %")
+        fig_m.add_hline(y=35, line_dash="dash", line_color="rgba(251,191,36,0.5)", line_width=2,
+                         annotation=dict(text="35% Target", font=dict(color="#fbbf24", size=10)))
+        fig_m.update_layout(**CHART_LAYOUT, height=300, yaxis_title="")
         st.plotly_chart(fig_m, use_container_width=True)
 
     with right:
         st.markdown("### Cost vs Profit")
         fig_s = go.Figure()
-        fig_s.add_trace(go.Bar(x=trading["Date"], y=trading["Total Cost"],
-                                name="Cost", marker_color="#8b5cf6"))
-        fig_s.add_trace(go.Bar(x=trading["Date"], y=trading["Total Profit"],
-                                name="Profit", marker_color="#22c55e"))
-        fig_s.update_layout(**CHART_LAYOUT, barmode="stack", height=280)
+        fig_s.add_trace(go.Bar(
+            x=trading["Date"], y=trading["Total Cost"], name="Cost",
+            marker=dict(color="#a78bfa", line=dict(width=0),
+                        pattern=dict(shape="", fillmode="replace")),
+        ))
+        fig_s.add_trace(go.Bar(
+            x=trading["Date"], y=trading["Total Profit"], name="Profit",
+            marker=dict(color="#34d399", line=dict(width=0)),
+        ))
+        fig_s.update_layout(**CHART_LAYOUT, barmode="stack", height=300, bargap=0.15)
         st.plotly_chart(fig_s, use_container_width=True)
 
     st.divider()
@@ -88,14 +108,24 @@ def render(df, expenses):
         avg_sales=("Total Net", "mean"), avg_profit=("Total Profit", "mean"),
     ).reindex(order).dropna()
 
-    colors_sales = ["#3b82f6" if d not in ("Friday", "Saturday") else "#2563eb" for d in dow.index]
+    # Gradient colors — weekend days get warmer tones
+    bar_colors = ["#818cf8", "#818cf8", "#818cf8", "#818cf8",
+                  "#c084fc", "#f472b6", "#fb923c"][:len(dow)]
 
     fig_dow = go.Figure()
-    fig_dow.add_trace(go.Bar(x=dow.index, y=dow["avg_sales"], name="Avg Sales",
-                              marker_color=colors_sales))
-    fig_dow.add_trace(go.Bar(x=dow.index, y=dow["avg_profit"], name="Avg Profit",
-                              marker_color="#22c55e"))
-    fig_dow.update_layout(**CHART_LAYOUT, barmode="group", height=300)
+    fig_dow.add_trace(go.Bar(
+        x=dow.index, y=dow["avg_sales"], name="Avg Sales",
+        marker=dict(color=bar_colors, line=dict(width=0),
+                    cornerradius=6),
+        text=[f"₹{v/1000:.0f}K" for v in dow["avg_sales"]],
+        textposition="outside", textfont=dict(size=10, color="#94a3b8"),
+    ))
+    fig_dow.add_trace(go.Bar(
+        x=dow.index, y=dow["avg_profit"], name="Avg Profit",
+        marker=dict(color=["rgba(52,211,153,0.7)"] * len(dow),
+                    line=dict(width=0), cornerradius=6),
+    ))
+    fig_dow.update_layout(**CHART_LAYOUT, barmode="group", height=320, bargap=0.2, bargroupgap=0.05)
     st.plotly_chart(fig_dow, use_container_width=True)
 
     st.divider()

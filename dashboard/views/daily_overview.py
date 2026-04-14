@@ -1,6 +1,7 @@
-"""Daily Overview — KPIs, section breakdown, comparisons, MTD."""
+"""Daily Overview — rich KPI cards, vibrant charts, section breakdown."""
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
 from hangout.analytics import (
     today_summary, section_breakdown, compare_averages,
@@ -8,7 +9,8 @@ from hangout.analytics import (
 )
 from hangout.config import CURRENCY_SYMBOL
 
-SECTION_COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4"]
+SECTION_COLORS = ["#6366f1", "#06b6d4", "#f59e0b", "#ec4899", "#10b981", "#f97316"]
+CHART_FONT = dict(family="Menlo, monospace", color="#94a3b8", size=11)
 
 
 def _fmt(val):
@@ -19,19 +21,38 @@ def _fmt(val):
     return f"{CURRENCY_SYMBOL}{val:,.0f}"
 
 
-def _kpi_card(icon, label, value, delta=None, color="#3b82f6"):
+def _kpi_card(icon, label, value, delta=None, accent="#6366f1", glow="99,102,241"):
+    """Glassmorphism KPI card with glow effect."""
     delta_html = ""
     if delta:
-        d_color = "#22c55e" if not delta.startswith("-") else "#ef4444"
-        arrow = "▲" if not delta.startswith("-") else "▼"
-        delta_html = f'<div style="font-size:0.78rem;color:{d_color};margin-top:4px;">{arrow} {delta}</div>'
+        is_positive = not delta.startswith("-")
+        d_color = "#34d399" if is_positive else "#f87171"
+        arrow = "▲" if is_positive else "▼"
+        delta_html = f'''
+        <div style="display:inline-block;margin-top:8px;padding:3px 10px;
+            border-radius:20px;font-size:0.72rem;font-weight:600;
+            background:{'rgba(52,211,153,0.12)' if is_positive else 'rgba(248,113,113,0.12)'};
+            color:{d_color};">{arrow} {delta}</div>'''
+
     return f"""
-    <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.06);
-        border-radius:14px;padding:20px;border-top:3px solid {color};
-        box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-        <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;
-            letter-spacing:0.08em;font-weight:600;">{icon} {label}</div>
-        <div style="font-size:1.8rem;font-weight:700;color:#f1f5f9;margin-top:6px;">{value}</div>
+    <div style="
+        background: linear-gradient(145deg, rgba(30,41,59,0.9), rgba(15,23,42,0.95));
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 16px;
+        padding: 22px 20px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba({glow},0.08), 0 1px 3px rgba(0,0,0,0.3);
+    ">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;
+            background:linear-gradient(90deg, {accent}, transparent);"></div>
+        <div style="position:absolute;top:-30px;right:-20px;width:80px;height:80px;
+            border-radius:50%;background:radial-gradient(circle, rgba({glow},0.08), transparent);"></div>
+        <div style="font-size:0.68rem;color:#64748b;text-transform:uppercase;
+            letter-spacing:0.1em;font-weight:700;">{icon} &nbsp;{label}</div>
+        <div style="font-size:2rem;font-weight:800;color:#f1f5f9;margin-top:8px;
+            font-family:Menlo,monospace;">{value}</div>
         {delta_html}
     </div>"""
 
@@ -61,18 +82,24 @@ def render(df, expenses):
     for level, msg in generate_alerts(df, selected_date, expenses):
         (st.warning if level == "warning" else st.success)(msg, icon="⚠️" if level == "warning" else "🎉")
 
-    # KPI cards
+    # KPI cards with different accent colors and glows
     comparisons = compare_averages(df, selected_date)
     delta_7d = f"{comparisons[0]['pct_change']:+.1%} vs 7d avg" if comparisons else None
-    margin_color = "#22c55e" if today["margin_pct"] >= 0.40 else "#f59e0b" if today["margin_pct"] >= 0.35 else "#ef4444"
+    margin_pct = today["margin_pct"]
+    m_accent = "#10b981" if margin_pct >= 0.40 else "#f59e0b" if margin_pct >= 0.35 else "#ef4444"
+    m_glow = "16,185,129" if margin_pct >= 0.40 else "245,158,11" if margin_pct >= 0.35 else "239,68,68"
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.markdown(_kpi_card("💰", "Sales", _fmt(today["total_net"]), delta_7d, "#3b82f6"), unsafe_allow_html=True)
-    c2.markdown(_kpi_card("📈", "Profit", _fmt(today["total_profit"]), None, "#22c55e"), unsafe_allow_html=True)
-    c3.markdown(_kpi_card("📦", "Cost of Goods", _fmt(today["total_cost"]), None, "#8b5cf6"), unsafe_allow_html=True)
-    c4.markdown(_kpi_card("📊", "Margin", f"{today['margin_pct']:.1%}", None, margin_color), unsafe_allow_html=True)
+    c1.markdown(_kpi_card("💰", "Sales", _fmt(today["total_net"]), delta_7d,
+                           "#6366f1", "99,102,241"), unsafe_allow_html=True)
+    c2.markdown(_kpi_card("📈", "Profit", _fmt(today["total_profit"]), None,
+                           "#10b981", "16,185,129"), unsafe_allow_html=True)
+    c3.markdown(_kpi_card("📦", "Cost of Goods", _fmt(today["total_cost"]), None,
+                           "#8b5cf6", "139,92,246"), unsafe_allow_html=True)
+    c4.markdown(_kpi_card("📊", "Margin", f"{margin_pct:.1%}", None,
+                           m_accent, m_glow), unsafe_allow_html=True)
 
-    st.markdown('<div style="height:24px;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:28px;"></div>', unsafe_allow_html=True)
 
     # Sections + Comparisons
     left, right = st.columns([3, 2], gap="large")
@@ -83,20 +110,38 @@ def render(df, expenses):
         active = [s for s in sections if s["net"] > 0]
 
         if active:
-            fig = px.pie(
-                pd.DataFrame(active), values="net", names="name", hole=0.45,
-                color_discrete_sequence=SECTION_COLORS,
+            fig = go.Figure(go.Pie(
+                labels=[s["name"] for s in active],
+                values=[s["net"] for s in active],
+                hole=0.5,
+                marker=dict(
+                    colors=SECTION_COLORS[:len(active)],
+                    line=dict(color="#0f172a", width=2),
+                ),
+                textinfo="label+percent",
+                textposition="outside",
+                textfont=dict(size=11, color="#cbd5e1"),
+                pull=[0.03] * len(active),
+            ))
+            fig.update_layout(
+                margin=dict(t=10, b=10, l=10, r=10), height=320,
+                showlegend=False, paper_bgcolor="rgba(0,0,0,0)",
+                font=CHART_FONT,
+                annotations=[dict(
+                    text=f"<b>{_fmt(today['total_net'])}</b>",
+                    x=0.5, y=0.5, font_size=16, font_color="#f1f5f9",
+                    showarrow=False,
+                )],
             )
-            fig.update_traces(textinfo="label+percent", textposition="outside",
-                              textfont_size=12, pull=[0.02]*len(active))
-            fig.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=300,
-                              showlegend=False, paper_bgcolor="rgba(0,0,0,0)",
-                              font=dict(family="Menlo, monospace", color="#cbd5e1"))
             st.plotly_chart(fig, use_container_width=True)
 
-            for s in active:
+            # Section table with colored dots
+            for i, s in enumerate(active):
+                color = SECTION_COLORS[i % len(SECTION_COLORS)]
                 cols = st.columns([3, 2, 2, 1])
-                cols[0].markdown(f"**{s['name']}**")
+                cols[0].markdown(
+                    f'<span style="color:{color};font-size:1.2rem;">●</span> &nbsp;**{s["name"]}**',
+                    unsafe_allow_html=True)
                 cols[1].markdown(f"`{_fmt(s['net'])}`")
                 cols[2].markdown(f"`{_fmt(s['profit'])}`")
                 cols[3].markdown(f"`{s['share_pct']:.0%}`")
